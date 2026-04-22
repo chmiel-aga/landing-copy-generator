@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractJson } from '@/lib/json-utils'
 
 export const maxDuration = 120
-import { anthropic } from '@/lib/claude'
+import { createAnthropicClient } from '@/lib/claude'
 import {
   buildBrandSystemPrompt,
   buildGenerationSystemInstructions,
@@ -13,6 +13,12 @@ import type { BrandProfile } from '@/lib/brand-context'
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = req.headers.get('x-anthropic-api-key')
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Brak klucza API. Skonfiguruj go w aplikacji.' }, { status: 401 })
+    }
+    const anthropic = createAnthropicClient(apiKey)
+
     const body = (await req.json()) as {
       copy: GeneratedCopy
       expertName: string

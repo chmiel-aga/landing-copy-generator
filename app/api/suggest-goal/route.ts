@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { anthropic } from '@/lib/claude'
+import { createAnthropicClient } from '@/lib/claude'
 import { buildSuggestGoalPrompt } from '@/lib/prompts'
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = req.headers.get('x-anthropic-api-key')
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Brak klucza API. Skonfiguruj go w aplikacji.' }, { status: 401 })
+    }
+    const anthropic = createAnthropicClient(apiKey)
+
     const body = (await req.json()) as { brief: string; pageType: string }
     const { brief, pageType } = body
 

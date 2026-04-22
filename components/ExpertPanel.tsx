@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import type { GeneratedCopy, ExpertOpinion, PanelVariant } from '@/lib/prompts'
 import { PANEL_CONFIG, defaultPanelVariant } from '@/lib/prompts'
 import type { BrandProfile } from '@/lib/brand-context'
+import { getApiKey } from '@/lib/api-key'
 
 interface Props {
   copy: GeneratedCopy
@@ -70,7 +71,7 @@ export default function ExpertPanel({
     try {
       const res = await fetch('/api/panel-critique', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-anthropic-api-key': getApiKey() ?? '' },
         body: JSON.stringify({
           copy,
           panelVariant,
@@ -107,7 +108,7 @@ export default function ExpertPanel({
       try {
         const res = await fetch('/api/implement-feedback', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-anthropic-api-key': getApiKey() ?? '' },
           body: JSON.stringify({
             copy: currentCopy,
             expertName,

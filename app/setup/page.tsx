@@ -14,8 +14,10 @@ import {
   createNewProfile,
   emptyBrandProfile,
 } from '@/lib/brand-context'
+import { getApiKey, setApiKey as saveApiKey, removeApiKey } from '@/lib/api-key'
 import BrandProfileForm from '@/components/BrandProfileForm'
 import DocumentUpload from '@/components/DocumentUpload'
+import ApiKeySetup from '@/components/ApiKeySetup'
 
 export default function SetupPage() {
   const router = useRouter()
@@ -25,7 +27,17 @@ export default function SetupPage() {
   const [allProfiles, setAllProfiles] = useState<SavedProfile[]>([])
   const [savedState, setSavedState] = useState<'idle' | 'saved'>('idle')
 
+  // API key state
+  const [apiKey, setApiKeyState] = useState<string | null>(null)
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
+  const [showKeyEdit, setShowKeyEdit] = useState(false)
+  const [keyValue, setKeyValue] = useState('')
+  const [keyError, setKeyError] = useState('')
+
   useEffect(() => {
+    setApiKeyState(getApiKey())
+    setApiKeyLoaded(true)
+
     const profiles = getAllProfiles()
     setAllProfiles(profiles)
     const active = getActiveProfileEntry()
@@ -35,6 +47,25 @@ export default function SetupPage() {
       setProfileName(active.name)
     }
   }, [])
+
+  const handleKeySave = () => {
+    const trimmed = keyValue.trim()
+    if (!trimmed.startsWith('sk-ant-')) {
+      setKeyError('Klucz musi zaczynać się od "sk-ant-"')
+      return
+    }
+    saveApiKey(trimmed)
+    setApiKeyState(trimmed)
+    setKeyValue('')
+    setKeyError('')
+    setShowKeyEdit(false)
+  }
+
+  const handleKeyRemove = () => {
+    removeApiKey()
+    setApiKeyState(null)
+    setShowKeyEdit(false)
+  }
 
   const persistSave = (redirectAfter: boolean) => {
     const name = profileName.trim() || 'Bez nazwy'
@@ -110,6 +141,12 @@ export default function SetupPage() {
     }))
   }
 
+  if (!apiKeyLoaded) return null
+
+  if (!apiKey) {
+    return <ApiKeySetup onSaved={() => setApiKeyState(getApiKey())} />
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -124,7 +161,50 @@ export default function SetupPage() {
               <p className="text-xs text-gray-400">Archetyp, persona, ton głosu</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            {/* API key button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowKeyEdit((v) => !v)}
+                className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors text-gray-500"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                Klucz API
+              </button>
+              {showKeyEdit && (
+                <div className="absolute right-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-30 space-y-3">
+                  <p className="text-xs font-medium text-gray-700">Zmień klucz API Anthropic</p>
+                  <input
+                    type="password"
+                    value={keyValue}
+                    onChange={(e) => { setKeyValue(e.target.value); setKeyError('') }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleKeySave()}
+                    placeholder="sk-ant-..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    autoFocus
+                  />
+                  {keyError && <p className="text-red-500 text-xs">{keyError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleKeySave}
+                      disabled={!keyValue.trim()}
+                      className="flex-1 bg-indigo-600 text-white py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40"
+                    >
+                      Zapisz
+                    </button>
+                    <button
+                      onClick={handleKeyRemove}
+                      className="px-3 py-1.5 rounded-lg text-xs text-red-500 hover:bg-red-50 transition-colors border border-gray-200"
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => persistSave(false)}
               className="text-sm border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"

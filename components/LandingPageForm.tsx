@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { BrandProfile } from '@/lib/brand-context'
 import { isProfileComplete, getCompletionScore } from '@/lib/brand-context'
 import { LANDING_PAGE_TYPES } from '@/lib/prompts'
+import { getApiKey } from '@/lib/api-key'
 
 interface Props {
   brandProfile: BrandProfile | null
@@ -41,7 +42,7 @@ export default function LandingPageForm({ brandProfile, onGenerate, isGenerating
     try {
       const res = await fetch('/api/suggest-goal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-anthropic-api-key': getApiKey() ?? '' },
         body: JSON.stringify({ brief: brief.trim(), pageType }),
       })
       if (!res.ok) {

@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractJson } from '@/lib/json-utils'
 
 export const maxDuration = 120
-import { anthropic } from '@/lib/claude'
+import { createAnthropicClient } from '@/lib/claude'
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = req.headers.get('x-anthropic-api-key')
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Brak klucza API. Skonfiguruj go w aplikacji.' }, { status: 401 })
+    }
+    const anthropic = createAnthropicClient(apiKey)
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 

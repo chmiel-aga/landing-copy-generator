@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { GeneratedCopy } from '@/lib/prompts'
 import type { BrandProfile } from '@/lib/brand-context'
+import { getApiKey } from '@/lib/api-key'
 
 interface Props {
   copy: GeneratedCopy
@@ -46,7 +47,7 @@ export default function FinalVerification({ copy, brandProfile, onCopyUpdate, on
     try {
       const res = await fetch('/api/contextual-correction', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-anthropic-api-key': getApiKey() ?? '' },
         body: JSON.stringify({ copy, mediumContext, brandProfile }),
       })
       const data = await res.json()

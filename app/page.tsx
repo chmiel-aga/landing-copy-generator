@@ -11,11 +11,13 @@ import {
   getCompletionScore,
   isProfileComplete,
 } from '@/lib/brand-context'
+import { getApiKey, setApiKey as saveApiKey, removeApiKey } from '@/lib/api-key'
 import type { GeneratedCopy } from '@/lib/prompts'
 import LandingPageForm from '@/components/LandingPageForm'
 import CopyOutput from '@/components/CopyOutput'
 import ExpertPanel from '@/components/ExpertPanel'
 import FinalVerification from '@/components/FinalVerification'
+import ApiKeySetup from '@/components/ApiKeySetup'
 
 export type { GeneratedCopy }
 
@@ -108,9 +110,95 @@ function Accordion({
   )
 }
 
+// ─── ApiKey button in header ──────────────────────────────────────────────────
+
+function ApiKeyButton({ onChanged }: { onChanged: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
+  const [error, setError] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleSave = () => {
+    const trimmed = value.trim()
+    if (!trimmed.startsWith('sk-ant-')) {
+      setError('Klucz musi zaczynać się od "sk-ant-"')
+      return
+    }
+    saveApiKey(trimmed)
+    setValue('')
+    setError('')
+    setOpen(false)
+    onChanged()
+  }
+
+  const handleRemove = () => {
+    removeApiKey()
+    setOpen(false)
+    onChanged()
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors text-gray-500"
+        title="Zmień klucz API"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+        </svg>
+        Klucz API
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-30 space-y-3">
+          <p className="text-xs font-medium text-gray-700">Zmień klucz API Anthropic</p>
+          <input
+            type="password"
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError('') }}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            placeholder="sk-ant-..."
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            autoFocus
+          />
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={!value.trim()}
+              className="flex-1 bg-indigo-600 text-white py-1.5 rounded-lg text-xs font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40"
+            >
+              Zapisz
+            </button>
+            <button
+              onClick={handleRemove}
+              className="px-3 py-1.5 rounded-lg text-xs text-red-500 hover:bg-red-50 transition-colors border border-gray-200"
+            >
+              Usuń
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  // API key state
+  const [apiKey, setApiKeyState] = useState<string | null>(null)
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false)
+
   // Profile state
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null)
   const [allProfiles, setAllProfiles] = useState<SavedProfile[]>([])
@@ -137,6 +225,9 @@ export default function Home() {
   const [allDone, setAllDone] = useState(false)
 
   useEffect(() => {
+    setApiKeyState(getApiKey())
+    setApiKeyLoaded(true)
+
     const profiles = getAllProfiles()
     setAllProfiles(profiles)
     const active = getActiveProfileEntry()
@@ -188,7 +279,10 @@ export default function Home() {
       try {
         const response = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-anthropic-api-key': getApiKey() ?? '',
+          },
           body: JSON.stringify({ brandProfile, pageType, pageGoal, brief, ownDraft }),
         })
 
@@ -226,13 +320,22 @@ export default function Home() {
   const completion = getCompletionScore(brandProfile)
   const profileComplete = isProfileComplete(brandProfile)
 
+  // Wait for hydration before showing anything
+  if (!apiKeyLoaded) return null
+
+  // No API key → show setup screen
+  if (!apiKey) {
+    return <ApiKeySetup onSaved={() => setApiKeyState(getApiKey())} />
+  }
+
   // No brand profile yet — show onboarding screen
   if (profilesLoaded && allProfiles.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <header className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <h1 className="text-lg font-bold text-gray-900">Generator copy landing page</h1>
+            <ApiKeyButton onChanged={() => setApiKeyState(getApiKey())} />
           </div>
         </header>
         <div className="flex-1 flex items-center justify-center px-4">
@@ -331,6 +434,8 @@ export default function Home() {
             >
               {brandProfile ? 'Edytuj markę' : 'Skonfiguruj markę'}
             </Link>
+
+            <ApiKeyButton onChanged={() => setApiKeyState(getApiKey())} />
           </div>
         </div>
       </header>

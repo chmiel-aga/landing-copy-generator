@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import type { BrandProfile } from '@/lib/brand-context'
+import { getApiKey } from '@/lib/api-key'
 
 interface Props {
   onExtracted: (profile: Partial<BrandProfile>) => void
@@ -22,6 +23,7 @@ export default function DocumentUpload({ onExtracted }: Props) {
 
     const response = await fetch('/api/extract-brand', {
       method: 'POST',
+      headers: { 'x-anthropic-api-key': getApiKey() ?? '' },
       body: formData,
     })
 
