@@ -117,6 +117,7 @@ export default function Home() {
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null)
   const [activeProfileName, setActiveProfileName] = useState<string>('')
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [profilesLoaded, setProfilesLoaded] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Copy state
@@ -144,6 +145,7 @@ export default function Home() {
       setActiveProfileId(active.id)
       setActiveProfileName(active.name)
     }
+    setProfilesLoaded(true)
   }, [])
 
   // Close dropdown on outside click
@@ -224,6 +226,38 @@ export default function Home() {
   const completion = getCompletionScore(brandProfile)
   const profileComplete = isProfileComplete(brandProfile)
 
+  // No brand profile yet — show onboarding screen
+  if (profilesLoaded && allProfiles.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 className="text-lg font-bold text-gray-900">Generator copy landing page</h1>
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Zacznij od profilu marki</h2>
+            <p className="text-gray-500 mb-8">
+              Zdefiniuj archetyp, ton głosu i personę swojej marki — generator dopasuje do niej każde słowo copy.
+            </p>
+            <Link
+              href="/setup"
+              className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            >
+              Stwórz profil marki
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -289,7 +323,11 @@ export default function Home() {
 
             <Link
               href="/setup"
-              className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+              className={`text-sm px-4 py-2 rounded-lg transition-colors shrink-0 ${
+                brandProfile
+                  ? 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
             >
               {brandProfile ? 'Edytuj markę' : 'Skonfiguruj markę'}
             </Link>

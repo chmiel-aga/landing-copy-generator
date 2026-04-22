@@ -54,18 +54,12 @@ export async function POST(req: NextRequest) {
       throw new Error('Brak odpowiedzi tekstowej od modelu')
     }
 
-    console.log('GEN stop_reason:', response.stop_reason, '| raw length:', textBlock.text.length)
     const jsonText = extractJson(textBlock.text)
-    console.log('GEN after extract length:', jsonText.length, '| last 200:', jsonText.slice(-200))
 
     let copy: unknown
     try {
       copy = JSON.parse(jsonText)
-    } catch (e) {
-      const err = e as SyntaxError
-      const pos = Number(err.message.match(/position (\d+)/)?.[1] ?? -1)
-      if (pos >= 0) console.error('GEN parse fail at pos', pos, '| context:', jsonText.slice(Math.max(0, pos - 100), pos + 100))
-      else console.error('GEN parse error:', err.message, '| last 300:', jsonText.slice(-300))
+    } catch {
       throw new Error('Model zwrócił nieprawidłowy JSON. Spróbuj ponownie.')
     }
 

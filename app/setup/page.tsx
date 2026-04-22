@@ -68,19 +68,16 @@ export default function SetupPage() {
     deleteProfile(id)
     const remaining = getAllProfiles()
     setAllProfiles(remaining)
+    if (remaining.length === 0) {
+      router.push('/')
+      return
+    }
     if (id === profileId) {
-      if (remaining.length > 0) {
-        const next = remaining[0]
-        switchToProfile(next.id)
-        setProfile(next.profile)
-        setProfileId(next.id)
-        setProfileName(next.name)
-      } else {
-        const np = createNewProfile()
-        setProfile(np.profile)
-        setProfileId(np.id)
-        setProfileName('')
-      }
+      const next = remaining[0]
+      switchToProfile(next.id)
+      setProfile(next.profile)
+      setProfileId(next.id)
+      setProfileName(next.name)
     }
   }
 
@@ -170,18 +167,16 @@ export default function SetupPage() {
                   onClick={() => handleSwitchProfile(sp)}
                 >
                   <span>{sp.name || 'Bez nazwy'}</span>
-                  {allProfiles.length > 1 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteProfile(sp.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all leading-none ml-0.5"
-                      title="Usuń profil"
-                    >
-                      ×
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteProfile(sp.id)
+                    }}
+                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all leading-none ml-0.5"
+                    title="Usuń profil"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
